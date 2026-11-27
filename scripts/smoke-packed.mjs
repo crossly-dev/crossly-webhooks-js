@@ -13,7 +13,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const tarDir = resolve(process.argv[2] ?? join(root, '.artifacts'));
+const tarDir = resolve(process.argv[2] ?? join(root, 'packed'));
 const tarballs = readdirSync(tarDir).filter((f) => f.endsWith('.tgz')).map((f) => join(tarDir, f));
 const expected = ['express', 'fastify', 'hono', 'next', 'koa'];
 for (const name of expected) {

@@ -13,8 +13,8 @@
     "build": "npm run build --workspaces",
     "typecheck": "npm run typecheck --workspaces",
     "test": "npm test --workspaces",
-    "pack:all": "node -e \"require('fs').mkdirSync('.artifacts',{recursive:true})\" && npm pack --workspaces --pack-destination .artifacts",
-    "smoke:packed": "node scripts/smoke-packed.mjs .artifacts"
+    "pack:all": "node -e \"require('fs').mkdirSync('packed',{recursive:true})\" && npm pack --workspaces --pack-destination packed",
+    "smoke:packed": "node scripts/smoke-packed.mjs packed"
   },
   "engines": {
     "node": ">=20.19"

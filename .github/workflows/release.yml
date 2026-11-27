@@ -47,18 +47,19 @@ jobs:
           done
       - run: npm run pack:all
       - name: packed tarballs work in a clean project
-        run: node scripts/smoke-packed.mjs .artifacts
+        run: node scripts/smoke-packed.mjs packed
       - name: checksums
-        working-directory: .artifacts
+        working-directory: packed
         run: sha256sum *.tgz | tee SHA256SUMS.txt
       - uses: actions/attest-build-provenance@v4
         with:
-          subject-path: .artifacts/*.tgz
+          subject-path: packed/*.tgz
       - uses: actions/upload-artifact@v7
         with:
           name: packages
-          path: .artifacts/
+          path: packed/
           retention-days: 30
+          if-no-files-found: error
 
   publish:
     needs: build
@@ -78,13 +79,13 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: packages
-          path: .artifacts
+          path: packed
       - name: npm publish --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -euo pipefail
-          for tgz in .artifacts/*.tgz; do
+          for tgz in packed/*.tgz; do
             manifest=$(tar -xzOf "$tgz" package/package.json)
             name=$(printf '%s' "$manifest" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).name")
             version=$(printf '%s' "$manifest" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")
@@ -107,7 +108,7 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: packages
-          path: .artifacts
+          path: packed
       - name: release notes from CHANGELOG.md
         run: node scripts/release-notes.mjs "${GITHUB_REF_NAME}" > notes.md
       - name: create or update the release
@@ -115,7 +116,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" .artifacts/* --clobber
+            gh release upload "$GITHUB_REF_NAME" packed/* --clobber
           else
-            gh release create "$GITHUB_REF_NAME" .artifacts/* --title "$GITHUB_REF_NAME" --notes-file notes.md --verify-tag
+            gh release create "$GITHUB_REF_NAME" packed/* --title "$GITHUB_REF_NAME" --notes-file notes.md --verify-tag
           fi

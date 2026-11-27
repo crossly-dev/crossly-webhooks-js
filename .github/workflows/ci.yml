@@ -41,8 +41,9 @@ jobs:
         if: matrix.node == '22'
         with:
           name: packages
-          path: .artifacts/*.tgz
+          path: packed/*.tgz
           retention-days: 7
+          if-no-files-found: error
 
   # The adapters claim older framework majors in peerDependencies; prove it.
   older-majors:
@@ -88,5 +89,5 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: packages
-          path: .artifacts
-      - run: node scripts/smoke-packed.mjs .artifacts
+          path: packed
+      - run: node scripts/smoke-packed.mjs packed
