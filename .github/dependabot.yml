@@ -1,0 +1,16 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      frameworks:
+        patterns: ['express', '@types/express', 'fastify', 'hono', 'koa', '@types/koa', '@koa/*']
+      tooling:
+        patterns: ['typescript', 'vitest', '@types/node']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

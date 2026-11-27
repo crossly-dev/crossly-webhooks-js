@@ -1,0 +1,121 @@
+name: release
+
+# Tag vX.Y.Z (or dispatch) -> build, test, pack every package, attest the tarballs,
+# publish to npm when vars.PUBLISH_NPM == 'true', and cut a GitHub Release on tags.
+#
+# npm auth: secrets.NPM_TOKEN when it is set; otherwise npm trusted publishing
+# (OIDC), which needs each package linked to this repository and release.yml on
+# npmjs.com first.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm run sync:check
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
+      - name: versions match the tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          want="${GITHUB_REF_NAME#v}"
+          for p in packages/*/package.json; do
+            have=$(node -p "require('./$p').version")
+            [ "$have" = "$want" ] || { echo "::error::$p is $have, tag is $GITHUB_REF_NAME"; exit 1; }
+          done
+      - run: npm run pack:all
+      - name: packed tarballs work in a clean project
+        run: node scripts/smoke-packed.mjs .artifacts
+      - name: checksums
+        working-directory: .artifacts
+        run: sha256sum *.tgz | tee SHA256SUMS.txt
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: .artifacts/*.tgz
+      - uses: actions/upload-artifact@v7
+        with:
+          name: packages
+          path: .artifacts/
+          retention-days: 30
+
+  publish:
+    needs: build
+    if: vars.PUBLISH_NPM == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+      # Trusted publishing needs npm >= 11.5.1; Node 22 ships npm 10.
+      - run: npm install -g npm@^11.5.1
+      - uses: actions/download-artifact@v8
+        with:
+          name: packages
+          path: .artifacts
+      - name: npm publish --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          for tgz in .artifacts/*.tgz; do
+            manifest=$(tar -xzOf "$tgz" package/package.json)
+            name=$(printf '%s' "$manifest" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).name")
+            version=$(printf '%s' "$manifest" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")
+            if npm view "$name@$version" version >/dev/null 2>&1; then
+              echo "$name@$version is already on npm; skipping"
+              continue
+            fi
+            npm publish "$tgz" --provenance --access public
+          done
+
+  github-release:
+    needs: [build, publish]
+    if: always() && startsWith(github.ref, 'refs/tags/v') && needs.build.result == 'success' && (needs.publish.result == 'success' || needs.publish.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: packages
+          path: .artifacts
+      - name: release notes from CHANGELOG.md
+        run: node scripts/release-notes.mjs "${GITHUB_REF_NAME}" > notes.md
+      - name: create or update the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" .artifacts/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" .artifacts/* --title "$GITHUB_REF_NAME" --notes-file notes.md --verify-tag
+          fi

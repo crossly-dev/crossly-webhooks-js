@@ -1,0 +1,92 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: typecheck, build, test (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm install --no-audit --no-fund
+      - name: shared sources are in sync
+        run: npm run sync:check
+      - run: npm run typecheck
+      - run: npm run build
+      - name: conformance vectors through every adapter
+        run: npm test
+      - name: pack
+        if: matrix.node == '22'
+        run: npm run pack:all
+      - uses: actions/upload-artifact@v7
+        if: matrix.node == '22'
+        with:
+          name: packages
+          path: .artifacts/*.tgz
+          retention-days: 7
+
+  # The adapters claim older framework majors in peerDependencies; prove it.
+  older-majors:
+    name: ${{ matrix.package }} on ${{ matrix.deps }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: '@crossly/express'
+            deps: express@^4.21.0 @types/express@^4.17.21
+          - package: '@crossly/fastify'
+            deps: fastify@^4.28.0
+          - package: '@crossly/koa'
+            deps: koa@^2.15.0 @types/koa@^2.15.0
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: install ${{ matrix.deps }}
+        run: npm install --no-audit --no-fund --no-save -w ${{ matrix.package }} ${{ matrix.deps }}
+      - run: npm run typecheck -w ${{ matrix.package }}
+      - run: npm test -w ${{ matrix.package }}
+
+  # Install the packed tarballs into a clean project, as a user would, on every supported Node line.
+  packed:
+    name: packed tarballs on node ${{ matrix.node }}
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22', '24']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/download-artifact@v8
+        with:
+          name: packages
+          path: .artifacts
+      - run: node scripts/smoke-packed.mjs .artifacts

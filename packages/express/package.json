@@ -1,0 +1,75 @@
+{
+  "name": "@crossly/express",
+  "version": "0.1.0",
+  "description": "Verify Crossly webhooks in Express 4/5 in one line: raw-body aware, typed events, 400 on a bad signature.",
+  "peerDependencies": {
+    "express": "^4.17.0 || ^5.0.0",
+    "@types/express": "^4.17.0 || ^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@types/express": {
+      "optional": true
+    }
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "prepack": "npm run build"
+  },
+  "license": "MIT",
+  "author": "Crossly <noreply@crossly.net>",
+  "homepage": "https://crossly.net/docs/api-webhooks",
+  "bugs": {
+    "url": "https://github.com/crossly-dev/crossly-webhooks-js/issues"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@crossly/sdk": "^0.2.0"
+  },
+  "keywords": [
+    "crossly",
+    "webhook",
+    "webhooks",
+    "signature",
+    "hmac",
+    "reseller",
+    "express",
+    "middleware"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/crossly-dev/crossly-webhooks-js.git",
+    "directory": "packages/express"
+  },
+  "devDependencies": {
+    "express": "^5.3.0",
+    "@types/express": "^5.0.6",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.2",
+    "@types/node": "^22.19.0"
+  }
+}

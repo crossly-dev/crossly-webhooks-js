@@ -1,0 +1,70 @@
+{
+  "name": "@crossly/hono",
+  "version": "0.1.0",
+  "description": "Verify Crossly webhooks in Hono (Cloudflare Workers, Bun, Deno, Node) in one line: typed events, 400 on a bad signature.",
+  "peerDependencies": {
+    "hono": "^4.0.0"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "prepack": "npm run build"
+  },
+  "license": "MIT",
+  "author": "Crossly <noreply@crossly.net>",
+  "homepage": "https://crossly.net/docs/api-webhooks",
+  "bugs": {
+    "url": "https://github.com/crossly-dev/crossly-webhooks-js/issues"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@crossly/sdk": "^0.2.0"
+  },
+  "keywords": [
+    "crossly",
+    "webhook",
+    "webhooks",
+    "signature",
+    "hmac",
+    "reseller",
+    "hono",
+    "cloudflare-workers",
+    "edge",
+    "middleware"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/crossly-dev/crossly-webhooks-js.git",
+    "directory": "packages/hono"
+  },
+  "devDependencies": {
+    "hono": "^4.13.23",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.2",
+    "@types/node": "^22.19.0"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "crossly-webhooks-js",
+  "private": true,
+  "version": "0.1.0",
+  "description": "One-line Crossly webhook receivers for Express, Fastify, Hono, Next.js and Koa.",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "sync": "node scripts/sync-shared.mjs",
+    "sync:check": "node scripts/sync-shared.mjs --check",
+    "build": "npm run build --workspaces",
+    "typecheck": "npm run typecheck --workspaces",
+    "test": "npm test --workspaces",
+    "pack:all": "node -e \"require('fs').mkdirSync('.artifacts',{recursive:true})\" && npm pack --workspaces --pack-destination .artifacts",
+    "smoke:packed": "node scripts/smoke-packed.mjs .artifacts"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/crossly-dev/crossly-webhooks-js.git"
+  }
+}
